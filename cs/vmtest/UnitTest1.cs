@@ -25,10 +25,7 @@ public class SimpleTests
     {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
-            Bytecode.NOP
-        };
-        vm.Execute(code);
+        vm.Execute(Bytecode.NOP);
 
         // If we get here, we're good
         Assert.IsTrue(vm != null);

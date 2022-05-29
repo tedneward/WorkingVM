@@ -18,10 +18,7 @@ class SimpleTests {
     @Test void testNOP() {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
-            Bytecode.NOP
-        };
-        vm.execute(code);
+        vm.execute(Bytecode.NOP);
 
         // If we got here, with no exception, we're good
         assertTrue(true);
@@ -43,11 +40,7 @@ class SimpleTests {
     @Test void testDump() {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
-            Bytecode.NOP,
-            Bytecode.DUMP
-        };
-        vm.execute(code);
+        vm.execute(Bytecode.DUMP);
 
         // If we got here, with no exception, we're good
         assertTrue(true);
