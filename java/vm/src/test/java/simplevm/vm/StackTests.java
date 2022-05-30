@@ -17,8 +17,8 @@ public class StackTests {
     @Test void testTrace() {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
-            Bytecode.CONST, new Bytecode(43),
+        int[] code = {
+            Bytecode.CONST, 43,
             Bytecode.NOP,
             Bytecode.DUMP
         };
