@@ -1,5 +1,15 @@
 # WorkingVM
-A testbed for the VMImpl workshop
+A testbed for the VMImpl workshop.
+
+Let's have support for several different language implementations:
+
+* C#
+* Java
+    * Kotlin?
+* C++
+* Swift
+* Crystal (yay LLVM bindings)
+* JavaScript? (not thrilled at the idea, but....)
 
 # Steps
 The steps to the workshop are as follows:
