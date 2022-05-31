@@ -26,7 +26,7 @@ class SimpleTests {
     @Test void testNOPs() {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
+        int[] code = {
             Bytecode.NOP,
             Bytecode.NOP,
             Bytecode.NOP,
@@ -48,7 +48,7 @@ class SimpleTests {
     @Test void testTrace() {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
+        int[] code = {
             Bytecode.TRACE,
             Bytecode.NOP,
             Bytecode.DUMP

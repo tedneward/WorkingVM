@@ -2,6 +2,8 @@ package simplevm.vm;
 
 import java.util.Arrays;
 
+import static simplevm.vm.Bytecode.*;
+
 public class VirtualMachine {
     
     boolean trace = false;
@@ -15,20 +17,21 @@ public class VirtualMachine {
     int[] stack = new int[100];
     int[] getStack() {
         if (sp > -1)
-            return Arrays.copyOf(stack, sp);
+            return Arrays.copyOf(stack, sp+1);
         else
             return new int[] { };
     }
 
     public void push(int value) {
         stack[++sp] = value;
+        trace("pushed " + value + "; stack: " + Arrays.toString(stack));
     }
     public int pop() {
         return stack[sp--];
     }
 
     int ip = 0;
-    public void execute(Bytecode opcode, int... operands) {
+    public void execute(int opcode, int... operands) {
         switch (opcode) {
             case NOP:
                 // Do nothing!
@@ -55,7 +58,7 @@ public class VirtualMachine {
                 throw new RuntimeException("Unrecognized opcode: " + opcode);
         }
     }
-    public void execute(Bytecode[] code) {
+    public void execute(int[] code) {
         for (ip = 0; ip < code.length; )
         {
             switch (code[ip])
@@ -70,7 +73,7 @@ public class VirtualMachine {
                 
                 // 1-operand opcodes
                 case CONST:
-                    execute(code[ip], code[++ip].ordinal());
+                    execute(code[ip], code[++ip]);
                     break;
 
                 // 2-operand opcodes

@@ -21,12 +21,17 @@ Our VirtualMachine needs some basic infrastructure to get started. Our VM will b
 
 There are some tests already defined in the respective test projects; if you use different names than the ones described here, refactor the tests accordingly, and by all means, feel free to add a few more tests if you feel the need.
 
-* We want to begin by implementing the world's simplest opcode: `NOP`, which literally does nothing. Create an enumeration type (or its closest equivalent) called `Bytecode`. Within that enumeration, define `NOP` as a value. (If the enumerations are backed by integers, set `NOP` to be `0`, which is its traditional value.)
+* We want to begin by implementing the world's simplest opcode: `NOP`, which literally does nothing. Create a type that will contain a number of integer constant values called `Bytecode`.
 
-* The processor cycle (fetch-decode-execute) is easier to understand if we break it apart. We'll worry about fetch and decode later; create a method, `execute`/`Execute` (depending on your language's naming conventions) that takes a single `Bytecode` parameter (the `opcode`) and a variable-length array of integers for `operands`. Within this method, you will examine the opcode and (at some point) any operands that are required to execute it. Put some error-handling in here to throw an exception if the opcode is not recognized. Make this method publicly accessible so we can call it from tests.
+    > **C#, C++**: This is most easily done with an `enum`, since enumerations in both languages are backed by an integer type.
+    > **Java**: This is most easily done with a series of `public static final int` values, since Java enumerations are object instances, not integer-backed values.
+
+    Within that enumeration, define `NOP` and set its value to 0. (Most bytecode and CPU instructions set `NOP` to 0 for a variety of reasons both historical and practical.)
+
+* The processor cycle (fetch-decode-execute) is easier to understand if we break it apart. We'll worry about fetch and decode later; create a method, `execute`/`Execute` (depending on your language's naming conventions) that takes a single `Bytecode`/`int` parameter (the `opcode`) and a variable-length array of integers for `operands`. Within this method, you will examine the opcode and (at some point) any operands that are required to execute it. Put some error-handling in here to throw an exception if the opcode is not recognized. Make this method publicly accessible so we can call it from tests.
     * For a `NOP` value, do nothing.
-    * *(Recommended but optional)* Implement a `DUMP` opcode (add it to `Bytecode` and to our `execute`/`Execute` method) that dumps the current state of the VM to console (or logfile, if you want to build one out).
-    * *(Recommended but optional)* Implement a `TRACE` opcode that flips the status of a private `trace` boolean field (from true to false or false to true). Build a private method that takes a message and prints it to console or log file if `trace` is set to true. Use this method to help trace execution within the VM while writing/testing new opcodes through this workshop.
+    * Implement a `DUMP` opcode (add it to `Bytecode` and to our `execute`/`Execute` method) that dumps the current state of the VM to console (or logfile, if you want to build one out).
+    * Implement a `TRACE` opcode that flips the status of a private `trace` boolean field (from true to false or false to true). Build a private method that takes a message and prints it to console or log file if `trace` is set to true. Use this method to help trace execution within the VM while writing/testing new opcodes through this workshop.
 
 * Given that this is a stack machine, we need an execution stack on which to push and pop values that will be the input and output for our various opcodes. We will use a fixed-size stack of integers, and we will "push" elements ("grow the stack") towards 100; the first element will be pushed at array index 0, the second at array index 1, and so on. For simplicity's sake, we will not worry about growing the stack or shrinking it. We'll want a reference to the "top" of the stack, and for testing purposes we'll want to be able to see the stack from the outside of the VM.
 
