@@ -20,6 +20,20 @@ public enum Bytecode
     // Math opcodes (unary)
     ABS,
     NEG,
+
+    // Comparison
+    EQ,
+    NEQ,
+    GT,
+    LT,
+    GTE,
+    LTE,
+
+    // Branching opcodes
+    JMP,
+    JMPI,
+    RJMP,
+    RJMPI
 }
 
 public class VirtualMachine
@@ -66,7 +80,7 @@ public class VirtualMachine
                     break;
                 case Bytecode.TRACE:
                     trace = !trace;
-                    Trace("TRACE");
+                    Trace("TRACE " + trace);
                     break;
                 case Bytecode.CONST:
                     int operand = operands[0];
@@ -76,7 +90,7 @@ public class VirtualMachine
                 case Bytecode.POP:
                     Trace("POP");
                     Pop();
-                    // throwaway returned value
+                    // throw away returned value
                     break;
                 case Bytecode.ADD:
                 {
@@ -132,6 +146,84 @@ public class VirtualMachine
                     Push(-val);
                     break;
                 }
+                
+                // Comparison ops
+                case Bytecode.EQ:
+                {
+                    Trace("EQ");
+                    int rhs = Pop();
+                    int lhs = Pop();
+                    Push(lhs == rhs ? 1 : 0);
+                    break;
+                }
+                case Bytecode.NEQ:
+                {
+                    Trace("NEQ");
+                    int rhs = Pop();
+                    int lhs = Pop();
+                    Push(lhs != rhs ? 1 : 0);
+                    break;
+                }
+                case Bytecode.GT:
+                {
+                    Trace("GT");
+                    int rhs = Pop();
+                    int lhs = Pop();
+                    Push(lhs > rhs ? 1 : 0);
+                    break;
+                }
+                case Bytecode.LT:
+                {
+                    Trace("LT");
+                    int rhs = Pop();
+                    int lhs = Pop();
+                    Push(lhs < rhs ? 1 : 0);
+                    break;
+                }
+                case Bytecode.GTE:
+                {
+                    Trace("GTE");
+                    int rhs = Pop();
+                    int lhs = Pop();
+                    Push(lhs >= rhs ? 1 : 0);
+                    break;
+                }
+                case Bytecode.LTE:
+                {
+                    Trace("LTE");
+                    int rhs = Pop();
+                    int lhs = Pop();
+                    Push(lhs <= rhs ? 1 : 0);
+                    break;
+                }
+
+                // Branching ops
+                case Bytecode.JMP:
+                {
+                    Trace("JMP " + operands[0]);
+                    IP = operands[0];
+                    break;
+                }
+                case Bytecode.RJMP:
+                {
+                    Trace("RJMP " + operands[0]);
+                    IP += operands[0];
+                    break;
+                }
+                case Bytecode.JMPI:
+                {
+                    int location = Pop();
+                    Trace("JMPI " + location);
+                    IP = location;
+                    break;
+                }
+                case Bytecode.RJMPI:
+                {
+                    int offset = Pop();
+                    Trace("RJMPI " + offset);
+                    IP += offset;
+                    break;
+                }
 
                 default:
                     throw new Exception("Unrecognized opcode: " + opcode);
@@ -156,11 +248,21 @@ public class VirtualMachine
                 case Bytecode.MOD:
                 case Bytecode.ABS:
                 case Bytecode.NEG:
+                case Bytecode.EQ:
+                case Bytecode.NEQ:
+                case Bytecode.GT:
+                case Bytecode.LT:
+                case Bytecode.GTE:
+                case Bytecode.LTE:
+                case Bytecode.JMPI:
+                case Bytecode.RJMPI:
                     Execute(opcode);
                     break;
 
                 // 1-operand opcodes
                 case Bytecode.CONST:
+                case Bytecode.JMP:
+                case Bytecode.RJMP:
                     int operand = (int)code[++IP];
                     Execute(opcode, operand);
                     break;

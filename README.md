@@ -3,13 +3,19 @@ A testbed for the VMImpl workshop.
 
 Let's have support for several different language implementations:
 
+Managed:
+
 * C#
 * Java
-    * Kotlin?
+* Kotlin? Kotlin Native?
+* F#?
+* JavaScript? (not thrilled at the idea, but....)
+
+Unmanaged:
+
 * C++
 * Swift
 * Crystal (yay LLVM bindings)
-* JavaScript? (not thrilled at the idea, but....)
 
 # Steps
 The steps to the workshop are as follows:
@@ -33,6 +39,12 @@ There are some tests already defined in the respective test projects; if you use
     * For a `NOP` value, do nothing.
     * Implement a `DUMP` opcode (add it to `Bytecode` and to our `execute`/`Execute` method) that dumps the current state of the VM to console (or logfile, if you want to build one out).
     * Implement a `TRACE` opcode that flips the status of a private `trace` boolean field (from true to false or false to true). Build a private method that takes a message and prints it to console or log file if `trace` is set to true. Use this method to help trace execution within the VM while writing/testing new opcodes through this workshop.
+
+    > **NOTE**: Some other interesting opcodes that you could potentially implement include:
+    > * `PRINT`: Print the top stack value, consuming it. (Pop it off, then print it.)
+    > * `HALT`: Immediately terminate execution of the virtual machine.
+    > * `FATAL`: Throw a FatalException from the virtual machine; generally this would be used to signal code that should never be executed, or as a placeholder for an opcode that's supposed to be replaced at runtime somehow.
+    > * `BREAK`: Puase the execution of the virtual machine, a la a breakpoint.
 
 * Given that this is a stack machine, we need an execution stack on which to push and pop values that will be the input and output for our various opcodes. We will use a fixed-size stack of integers, and we will "push" elements ("grow the stack") towards 100; the first element will be pushed at array index 0, the second at array index 1, and so on. For simplicity's sake, we will not worry about growing the stack or shrinking it. We'll want a reference to the "top" of the stack, and for testing purposes we'll want to be able to see the stack from the outside of the VM.
 
@@ -108,9 +120,11 @@ Take a moment and write some bytecode patterns for common high-level language co
     0: CONST 5  // Define the value to be tested
     2: CONST 2  // Push 2 
     4: MOD      // Mod
-    5: JZ 8     // If it's 0, it divided evenly
-    7: DUMP
-    8: NOP
+    5: DUMP     // Let's see what's on the stack
+    6: JZ 9     // If it's 0, it divided evenly
+    8: DUMP     // Let's see what's on the stack
+    9: NOP
+    10: NOP
     ```
 
 * 3... 2... 1... blastoff (while): count down from 5 to 0
