@@ -5,6 +5,12 @@ import java.util.Arrays;
 import static simplevm.vm.Bytecode.*;
 
 public class VirtualMachine {
+
+    public static class Exception extends java.lang.RuntimeException {
+        public Exception(String message) {
+            super(message);
+        }
+    }
     
     boolean trace = false;
     private void trace(String message) {
@@ -71,6 +77,7 @@ public class VirtualMachine {
                     case MUL: trace("MUL"); push(lhs * rhs); break;
                     case DIV: trace("DIV"); push(lhs / rhs); break;
                     case MOD: trace("MOD"); push(lhs % rhs); break;
+                    default: throw new Exception("Should never happen");
                 }
                 break;
             }
@@ -102,28 +109,52 @@ public class VirtualMachine {
                     case LT: trace("LT"); push(lhs < rhs ? 1 : 0); break;
                     case GTE: trace("GTE"); push(lhs >= rhs ? 1 : 0); break;
                     case LTE: trace("LTE"); push(lhs <= rhs ? 1 : 0); break;
+                    default:
+                        throw new Exception("Should never reach here");
                 }
                 break;
             }
 
             // Branching ops
             case JMP:
+                trace("JMP" + operands[0]);
                 ip = operands[0];
                 break;
             case RJMP:
+                trace("RJMP" + operands[0]);
                 ip += operands[0];
                 break;
             case JMPI:
+                trace("JMPI");
                 int location = pop();
                 ip = location;
                 break;
             case RJMPI:
+                trace("RJMPI");
                 int offset = pop();
                 ip += offset;
                 break;
+            case JZ:
+            {
+                trace("JZ" + operands[0]);
+                int jump = pop();
+                if (jump == 0) { 
+                    ip = operands[0];
+                }
+                break;
+            }
+            case JNZ:
+            {
+                trace("JNZ" + operands[0]);
+                int jump = pop();
+                if (jump != 0) { 
+                    ip = operands[0];
+                }
+                break;
+            }
 
             default:
-                throw new RuntimeException("Unrecognized opcode: " + opcode);
+                throw new Exception("Unrecognized opcode: " + opcode);
         }
     }
     public void execute(int[] code) {
@@ -158,6 +189,8 @@ public class VirtualMachine {
                 case CONST:
                 case JMP:
                 case RJMP:
+                case JZ:
+                case JNZ:
                     execute(code[ip], code[++ip]);
                     break;
 
@@ -165,7 +198,7 @@ public class VirtualMachine {
 
                 // Unknown
                 default:
-                    throw new RuntimeException("Unrecognized opcode: " + code[ip]);
+                    throw new Exception("Unrecognized opcode: " + code[ip]);
             }
             ip++;
         }

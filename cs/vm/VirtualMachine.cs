@@ -33,7 +33,9 @@ public enum Bytecode
     JMP,
     JMPI,
     RJMP,
-    RJMPI
+    RJMPI,
+    JZ,
+    JNZ
 }
 
 public class VirtualMachine
@@ -222,6 +224,22 @@ public class VirtualMachine
                     int offset = Pop();
                     Trace("RJMPI " + offset);
                     IP += offset;
+                    break;
+                }
+                case Bytecode.JZ:
+                {
+                    Trace("JZ " + operands[0]);
+                    if (Pop() == 0) {
+                        IP = operands[0];
+                    }
+                    break;
+                }
+                case Bytecode.JNZ:
+                {
+                    Trace("JNZ " + operands[0]);
+                    if (Pop() != 0) {
+                        IP = operands[0];
+                    }
                     break;
                 }
 

@@ -1,6 +1,10 @@
 package simplevm.vm;
 
 public class Bytecode {
+    private Bytecode() { 
+        throw new VirtualMachine.Exception("Bytecode private ctor should never be called"); 
+    }
+
     public static final int NOP = 0;
     public static final int DUMP = 1;
     public static final int TRACE = 2;
@@ -33,6 +37,4 @@ public class Bytecode {
     public static final int RJMPI = 43;
     public static final int JZ = 44;
     public static final int JNZ = 45;
-
-    // Some utility methods
 }
