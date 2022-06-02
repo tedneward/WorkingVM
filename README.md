@@ -14,6 +14,7 @@ There are some tests already defined in the respective test projects; if you use
 * We want to begin by implementing the world's simplest opcode: `NOP`, which literally does nothing. Create a type that will contain a number of integer constant values called `Bytecode`.
 
     > **C#, C++**: This is most easily done with an `enum`, since enumerations in both languages are backed by an integer type.
+
     > **Java**: This is most easily done with a series of `public static final int` values, since Java enumerations are object instances, not integer-backed values.
 
     Within that enumeration, define `NOP` and set its value to 0. (Most bytecode and CPU instructions set `NOP` to 0 for a variety of reasons both historical and practical.)
@@ -32,13 +33,15 @@ There are some tests already defined in the respective test projects; if you use
     * Create two public methods, `push`/`Push` (which takes an integer and returns nothing) and `pop`/`Pop` (which takes nothing and returns an integer) that push or pop the value at the top of the stack respectively. Make sure `SP` gets incremented or decremented correctly with each push or pop.
     * Create a public method/property (`getStack()`/`Stack`) that returns a copy of the current contents of the stack. For easier diagnostics, make sure to only return the part of the stack that is in use--so if the current SP is 2, only return elements 0 through 2 of the total stack. If the current SP is -1, then return an empty array (the stack is empty).
 
-* Now let's put two of the core stack machine opcodes into place: `CONST`, which takes one operand containing a value to push onto the stack, and `POP`, which pops a value off the stack (and throws it away). Note that `CONST` has one quirk to it, in that the value to push will be embedded in the code itself, so it will be masquerading as a `Bytecode` value. This is, in many respects, the "decode" part of the fetch-decode-execute cycle. (For most languaes, enumeration types are backed by an integer, so you'll just need to cast from `Bytecode` to `int` and back again to keep the compilers happy.)
+* Now let's put two of the core stack machine opcodes into place: `CONST`, which takes one operand containing a value to push onto the stack, and `POP`, which pops a value off the stack (and throws it away). Note that `CONST` has one quirk to it, in that the value to push will be embedded in the code itself, so it will be masquerading as a `Bytecode` value. This is, in many respects, the "decode" part of the fetch-decode-execute cycle. (For those languages in which enumeration types are backed by an integer, you'll need to cast from `Bytecode` to `int` and back again to keep the compilers happy.)
 
     > **NOTE**: This means that any given collection of code will actually contain values that aren't entirely code, and this is true of all assembly languages. In many more optimized bytecode or CPU sets, these values can be "packed" together with the opcode value to allow for more efficient storage, and thus "unpacking" these values becomes a core part of the "decode" step. To keep things simple, we will not be exploring this packing/unpacking behavior.
 
     Make sure to write tests that ensure the stack works correctly. You shouldn't need to be too exhaustive--once you've verified that pushes advance the SP and pops reduce it, and that values appear on the stack and then are gone again, we can move on. (In a production implementation, )
 
-* Lastly, let's create a method that will take an array of `Bytecode` and execute them in sequence, until we run out of them. Call this method `execute`/`Execute` as well, and loop through the array of bytecode, extracting additional operands as necessary (only `CONST` will need to do this so far) and passing them to the single-opcode version of `execute`/`Execute` you wrote earlier.
+* Create a method that will take an array of `Bytecode` and execute them in sequence, until we run out of them. Call this method `execute`/`Execute` as well, and loop through the array of bytecode, extracting additional operands as necessary (only `CONST` will need to do this so far) and passing them to the single-opcode version of `execute`/`Execute` you wrote earlier.
+
+* For our own purposes (and to make the VM more interesting), implement a `PRINT` opcode that will print (and consume) the contents of the top of the stack. So a sequence of `CONST 5 PRINT` should print "5" to the console (and leave an empty stack behind).
 
 * *(Optional)* Although we won't get to needing it in this workshop, most stack-based virtual machines have another stack-manipulation instruction called `DUP` that pops the current top of the stack, then pushes it twice. (It is frequently used when a local variable is used as part of a procedure call, since the values passed on the stack are consumed by the called procedure.) Implement it (and some tests for it) as a test for understanding.
 
@@ -66,14 +69,11 @@ As we will see, it is often convenient (and common) to combine comparison and br
 * The next-simplest comparisons are the relative ones: greater-than (`GT`) and less-than (`LT`). Again, like `SUB`, these require positional sensitivity; `1 < 2` is different from `1 > 2`.
 * Similar sorts of comparison operations are combinations of these: greater-than-or-equals (`GTE`), less-than-or-equals (`LTE`), and so on.
 
-This is a pretty good collection of comparison opcodes. Next let's do some branching opcodes, the easiest of which is `JMP` (an unconditional goto), which will take one operand: the address to jump to. In our simplified bytecode set, that "address" will be the index of the instruction in the array of bytecode, and will be passed in as an operand to the opcode. Thus, `JMP 6` means to jump to the 6th element in the bytecode array.
+This is a pretty good collection of comparison opcodes. (But, if you wish, you are always free to implement a few more, if you wish.)
 
-> **NOTE**: The absolute nature of the jump target allows us to jump to an operand rather than an opcode--for example, consider the sequence "CONST 1 JMP 2", which would push a 0 onto the stack, then jump to the second element in the array (1), and execute it as if it were bytecode (which is the DUMP instruction) before continuing on and JMPing again... This is, in fact, doable under a number of assembly languages, and for a time was considered a hallmark of the master programmer to be able to do so and have it make sense.
+Next let's do some branching opcodes, the easiest of which is `JMP` (an unconditional goto), which will take one operand: the address to jump to. In our simplified bytecode set, that "address" will be the index of the instruction in the array of bytecode, and will be passed in as an operand to the opcode. Thus, `JMP 6` means to jump to the 6th element in the bytecode array.
 
-Once that's done...
-
-* Implement `JZ`, a jump-if-zero bytecode, which combines a `EQ 0` with a `JMP`. It should take one operand (the index to jump to if the top value on the stack is zero).
-* Implement `JNZ`, a jump-if-not-zero bytecode, which jumps if the top-of-the-stack is NOT zero.
+> **NOTE**: The absolute nature of the jump target allows us to jump to an operand rather than an opcode--for example, consider the sequence "CONST 1 JMP 2", which would push a 0 onto the stack, then jump to the second element in the array (which is the operand `1` to the `CONST` instruction), and execute it as if it were bytecode (which is the `DUMP` instruction) before continuing on and JMPing again... This is, in fact, doable under a number of assembly languages, and for a time being able to jump into the middle of an instruction and have it execute correctly was considered a hallmark of the master programmer.
 
 We can also implement "indirect" jumps, which jumps to a location as specified at runtime rather than at the time the bytecode was written ("compile-time").
 
@@ -82,6 +82,42 @@ We can also implement "indirect" jumps, which jumps to a location as specified a
 Sometimes calculating the absolute positions of where to jump is hard, so it's easier to have the bytecode take jump target locations that are relative to the current position.)
 
 * Implement `RJMP`, which is a "relative jump", which jumps a number of bytecode positions (positive or negative) from its current location. So `RJMP -1` would jump back to the instruction previous to the RJMP, and `RJMP 1` would jump to the next instruction (which would really accomplish the exact same thing as doing nothing). Keep in mind that `RJMP 0` would effectively be an infinite loop--we just keep jumping to the same instruction.
+* Additionally, it can be helpful to jump "indirectly" to a "relative" location, so implement `RJMPI`, which jumps a number of bytecode positions relative to the current location by the amount specified at the top of the stack. So `CONST 5 RJMPI` means to pop the stack and examine the value; since it's 5, jump 5 positions ahead of the current location. Similarly, `CONST -5 RJMPI` would jump -5 spots.
 
-## Step 3: Add locals and globals
+Once that's done...
+
+* Implement `JZ`, a jump-if-zero bytecode, which combines a `EQ 0` with a `JMP`. It should take one operand (the index to jump to if the top value on the stack is zero).
+* Implement `JNZ`, a jump-if-not-zero bytecode, which jumps if the top-of-the-stack is NOT zero.
+
+## Interlude: Write some bytecode
+Take a moment and write some bytecode patterns for common high-level language constructs. (Comments are C++-style `//` comments.)
+
+* Even or odd (if/then/else)
+
+    ```
+    0: CONST 5  // Define the value to be tested
+    2: CONST 2  // Push 2 
+    4: MOD      // Mod
+    5: JZ 8     // If it's 0, it divided evenly
+    7: DUMP
+    8: NOP
+    ```
+
+* 3... 2... 1... blastoff (while): count down from 5 to 0
+
+    ```
+    0: CONST 10 // Start with 5
+    2: CONST 1  // Push 1
+    4: SUB 1    // Subtract
+    6: JZ 10    // If the result is 0, go to 10
+    8: JMP 2    // Jump to 2 and keep going
+    10: NOP
+    ```
+
+## Step 3: Add globals
+
+
+
+## Step 4: Add procedures and locals
+
 

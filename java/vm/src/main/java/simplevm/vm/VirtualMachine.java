@@ -21,7 +21,6 @@ public class VirtualMachine {
         else
             return new int[] { };
     }
-
     public void push(int value) {
         stack[++sp] = value;
         trace("pushed " + value + "; stack: " + Arrays.toString(stack));
@@ -29,6 +28,8 @@ public class VirtualMachine {
     public int pop() {
         return stack[sp--];
     }
+
+    int[] globals = new int[256];
 
     int ip = 0;
     public void execute(int opcode, int... operands) {
@@ -54,6 +55,73 @@ public class VirtualMachine {
                 pop();
                 break;
 
+            // Binary math operations
+            case ADD:
+            case SUB:
+            case MUL:
+            case DIV:
+            case MOD:
+            {
+                // We are assuming left-to-right parameter order
+                int rhs = pop();
+                int lhs = pop();
+                switch (opcode) {
+                    case ADD: trace("ADD"); push(lhs + rhs); break;
+                    case SUB: trace("SUB"); push(lhs - rhs); break;
+                    case MUL: trace("MUL"); push(lhs * rhs); break;
+                    case DIV: trace("DIV"); push(lhs / rhs); break;
+                    case MOD: trace("MOD"); push(lhs % rhs); break;
+                }
+                break;
+            }
+            // Unary math operations
+            case ABS:
+                trace("ABS");
+                push(Math.abs(pop()));
+                break;
+            case NEG:
+                trace("NEG");
+                push(- pop());
+                break;
+
+            // Comparison ops
+            case EQ:
+            case NEQ:
+            case GT:
+            case LT:
+            case GTE:
+            case LTE:
+            {
+                // We are assuming left-to-right parameter order
+                int rhs = pop();
+                int lhs = pop();
+                switch (opcode) {
+                    case EQ: trace("EQ"); push(lhs == rhs ? 1 : 0); break;
+                    case NEQ: trace("NEQ"); push(lhs != rhs ? 1 : 0); break;
+                    case GT: trace("GT"); push(lhs > rhs ? 1 : 0); break;
+                    case LT: trace("LT"); push(lhs < rhs ? 1 : 0); break;
+                    case GTE: trace("GTE"); push(lhs >= rhs ? 1 : 0); break;
+                    case LTE: trace("LTE"); push(lhs <= rhs ? 1 : 0); break;
+                }
+                break;
+            }
+
+            // Branching ops
+            case JMP:
+                ip = operands[0];
+                break;
+            case RJMP:
+                ip += operands[0];
+                break;
+            case JMPI:
+                int location = pop();
+                ip = location;
+                break;
+            case RJMPI:
+                int offset = pop();
+                ip += offset;
+                break;
+
             default:
                 throw new RuntimeException("Unrecognized opcode: " + opcode);
         }
@@ -68,15 +136,32 @@ public class VirtualMachine {
                 case TRACE:
                 case DUMP:
                 case POP:
+                case ADD:
+                case SUB:
+                case MUL:
+                case DIV:
+                case MOD:
+                case ABS:
+                case NEG:
+                case EQ:
+                case NEQ:
+                case GT:
+                case LT:
+                case GTE:
+                case LTE:
+                case JMPI:
+                case RJMPI:
                     execute(code[ip]);
                     break;
                 
                 // 1-operand opcodes
                 case CONST:
+                case JMP:
+                case RJMP:
                     execute(code[ip], code[++ip]);
                     break;
 
-                // 2-operand opcodes
+                // 2-operand (or more) opcodes
 
                 // Unknown
                 default:
