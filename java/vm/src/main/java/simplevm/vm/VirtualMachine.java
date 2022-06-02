@@ -117,23 +117,31 @@ public class VirtualMachine {
 
             // Branching ops
             case JMP:
+            {
                 trace("JMP" + operands[0]);
                 ip = operands[0];
                 break;
+            }
             case RJMP:
+            {
                 trace("RJMP" + operands[0]);
                 ip += operands[0];
                 break;
+            }
             case JMPI:
+            {
                 trace("JMPI");
                 int location = pop();
                 ip = location;
                 break;
+            }
             case RJMPI:
+            {
                 trace("RJMPI");
                 int offset = pop();
                 ip += offset;
                 break;
+            }
             case JZ:
             {
                 trace("JZ" + operands[0]);
