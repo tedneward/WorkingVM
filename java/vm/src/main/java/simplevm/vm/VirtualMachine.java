@@ -1,6 +1,8 @@
 package simplevm.vm;
 
+import java.util.LinkedList;
 import java.util.Arrays;
+import java.util.List;
 
 import static simplevm.vm.Bytecode.*;
 
@@ -12,6 +14,8 @@ public class VirtualMachine {
         }
     }
     
+    // Tracing
+    //
     boolean trace = false;
     private void trace(String message) {
         if (trace) {
@@ -19,6 +23,8 @@ public class VirtualMachine {
         }
     }
 
+    // Stack management
+    //
     int sp = -1;
     int[] stack = new int[100];
     int[] getStack() {
@@ -35,8 +41,28 @@ public class VirtualMachine {
         return stack[sp--];
     }
 
-    int[] globals = new int[256];
+    public static class StackFrame {
+        public int[] locals = null;
+        public StackFrame previous = null;
+        public int returnAddress = -1;
+        public StackFrame(StackFrame prev) {
+            // assume a max of 32 locals for now
+            previous = prev;
+            locals = new int[32];
+        }
+    }
+    public List<StackFrame> frames = new LinkedList<>();
+    public StackFrame fp() { return frames.get(frames.size() - 1); }
 
+    // Globals
+    //
+    int[] globals = new int[256];
+    int[] getGlobals() {
+        return globals;
+    }
+
+    // Execution
+    //
     int ip = 0;
     public void execute(int opcode, int... operands) {
         switch (opcode) {
@@ -50,6 +76,10 @@ public class VirtualMachine {
             case TRACE:
                 trace = !trace;
                 trace("TRACE");
+                break;
+            case PRINT:
+                trace("PRINT");
+                System.out.println(pop());
                 break;
             
             case CONST:
@@ -142,22 +172,70 @@ public class VirtualMachine {
                 ip += offset;
                 break;
             }
-            case JZ:
+            case JF:
             {
-                trace("JZ" + operands[0]);
+                trace("JF" + operands[0]);
                 int jump = pop();
                 if (jump == 0) { 
                     ip = operands[0];
                 }
                 break;
             }
-            case JNZ:
+            case JT:
             {
-                trace("JNZ" + operands[0]);
+                trace("JT" + operands[0]);
                 int jump = pop();
                 if (jump != 0) { 
                     ip = operands[0];
                 }
+                break;
+            }
+
+            // Globals
+            //
+            case GLOAD:
+            {
+                trace("GLOAD " + operands[0]);
+                push(globals[operands[0]]);
+                break;
+            }
+            case GSTORE:
+            {
+                trace("GSTORE " + operands[0]);
+                globals[operands[0]] = pop();
+                break;
+            }
+
+            // Functions
+            //
+            case CALL:
+            {
+                trace("CALL to " + operands[0]); // go to next instruction
+                StackFrame current = fp();
+                StackFrame next = new StackFrame(current);
+                next.returnAddress = ip;    //
+                frames.add(next);
+                ip = operands[0] -1; // -1 is to offset the "ip++" below
+
+                break;
+            }
+            case RET:
+            {
+                StackFrame sf = frames.remove(frames.size() - 1);
+                trace("RET (to " + sf.returnAddress + ")");
+                ip = sf.returnAddress;
+                break;
+            }
+            case LOAD:
+            {
+                trace("LOAD " + operands[0]);
+                push(fp().locals[operands[0]]);
+                break;
+            }
+            case STORE:
+            {
+                trace("STORE " + operands[0]);
+                fp().locals[operands[0]] = pop();
                 break;
             }
 
@@ -166,6 +244,15 @@ public class VirtualMachine {
         }
     }
     public void execute(int[] code) {
+        // We are executing a collection of code, so assume a new StackFrame
+        if (frames.isEmpty()) {
+            StackFrame main = new StackFrame(null);
+            frames.add(main);
+        }
+        else {
+            StackFrame current = fp();
+            frames.add(new StackFrame(current));
+        }
         for (ip = 0; ip < code.length; )
         {
             switch (code[ip])
@@ -174,6 +261,7 @@ public class VirtualMachine {
                 case NOP:
                 case TRACE:
                 case DUMP:
+                case PRINT:
                 case POP:
                 case ADD:
                 case SUB:
@@ -190,6 +278,7 @@ public class VirtualMachine {
                 case LTE:
                 case JMPI:
                 case RJMPI:
+                //case RET:
                     execute(code[ip]);
                     break;
                 
@@ -197,12 +286,19 @@ public class VirtualMachine {
                 case CONST:
                 case JMP:
                 case RJMP:
-                case JZ:
-                case JNZ:
+                case JT:
+                case JF:
+                case GLOAD:
+                case GSTORE:
+                //case STORE:
+                //case LOAD:
                     execute(code[ip], code[++ip]);
                     break;
 
                 // 2-operand (or more) opcodes
+                //case CALL:
+                //    execute(code[ip], code[++ip], code[++ip]);
+                //    break;
 
                 // Unknown
                 default:

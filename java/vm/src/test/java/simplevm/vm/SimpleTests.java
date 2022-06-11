@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import static simplevm.vm.Bytecode.*;
+
 class SimpleTests {
     @Test void testTest() {
         assertEquals(2, 1 + 1);
@@ -18,7 +20,7 @@ class SimpleTests {
     @Test void testNOP() {
         VirtualMachine vm = new VirtualMachine();
 
-        vm.execute(Bytecode.NOP);
+        vm.execute(NOP);
 
         // If we got here, with no exception, we're good
         assertTrue(true);
@@ -26,13 +28,12 @@ class SimpleTests {
     @Test void testNOPs() {
         VirtualMachine vm = new VirtualMachine();
 
-        int[] code = {
-            Bytecode.NOP,
-            Bytecode.NOP,
-            Bytecode.NOP,
-            Bytecode.NOP
-        };
-        vm.execute(code);
+        vm.execute(new int[] {
+            NOP,
+            NOP,
+            NOP,
+            NOP
+        });
 
         // If we got here, with no exception, we're good
         assertTrue(true);
@@ -40,7 +41,7 @@ class SimpleTests {
     @Test void testDump() {
         VirtualMachine vm = new VirtualMachine();
 
-        vm.execute(Bytecode.DUMP);
+        vm.execute(DUMP);
 
         // If we got here, with no exception, we're good
         assertTrue(true);
@@ -48,14 +49,25 @@ class SimpleTests {
     @Test void testTrace() {
         VirtualMachine vm = new VirtualMachine();
 
-        int[] code = {
-            Bytecode.TRACE,
-            Bytecode.NOP,
-            Bytecode.DUMP
-        };
-        vm.execute(code);
+        vm.execute(new int[] {
+            TRACE,
+            NOP,
+            DUMP
+        });
 
         // If we got here, with no exception, we're good
-        assertTrue(true);
+        assertEquals(0, vm.getStack().length);
+    }
+    @Test void testPrint() {
+        VirtualMachine vm = new VirtualMachine();
+
+        vm.execute(new int[] {
+            CONST, 12,
+            PRINT
+        });
+
+        // Check the output for the printed output
+
+        assertEquals(0, vm.getStack().length);
     }
 }
