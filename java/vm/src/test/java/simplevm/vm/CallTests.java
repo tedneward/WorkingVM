@@ -22,7 +22,7 @@ public class CallTests {
             /*8*/ LOAD, 0,    // locals[0]
             /*10*/CONST, 0,   // 0
             /*12*/EQ,         // locals[0] == 0 ?
-            /*13*/JT, 24,     // jump to return
+            /*13*/JNZ, 24,     // jump to return
             /*15*/LOAD, 0,    // locals[0] = locals[0] - 1
             /*17*/CONST, 1,
             /*19*/SUB,

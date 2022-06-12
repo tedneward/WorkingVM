@@ -177,18 +177,18 @@ public class VirtualMachine {
                 ip += offset - 1; // offset for the ip++ below
                 break;
             }
-            case JF:
+            case JZ:
             {
-                trace("JF " + operands[0]);
+                trace("JZ " + operands[0]);
                 int jump = pop();
                 if (jump == 0) { 
                     ip = operands[0] - 1; // offset for the ip++ below
                 }
                 break;
             }
-            case JT:
+            case JNZ:
             {
-                trace("JT " + operands[0]);
+                trace("JNZ " + operands[0]);
                 int jump = pop();
                 if (jump != 0) { 
                     ip = operands[0] - 1; // offset for the ip++ below
@@ -296,8 +296,8 @@ public class VirtualMachine {
                 case CONST:
                 case JMP:
                 case RJMP:
-                case JT:
-                case JF:
+                case JZ:
+                case JNZ:
                 case GLOAD:
                 case GSTORE:
                 case STORE:

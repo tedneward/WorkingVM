@@ -38,8 +38,8 @@ public class Bytecode {
     public static final int RJMP = 41;
     public static final int JMPI = 42;
     public static final int RJMPI = 43;
-    public static final int JT = 44;
-    public static final int JF = 45;
+    public static final int JNZ = 44;
+    public static final int JZ = 45;
 
     // Globals
     public static final int GLOAD = 50;

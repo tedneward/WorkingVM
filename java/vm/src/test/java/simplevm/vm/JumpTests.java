@@ -44,7 +44,7 @@ public class JumpTests {
             /* 8*/ GLOAD, 0,    // globals[0]/count
             /*10*/ CONST, 10,   // 10
             /*12*/ EQ,          // globals[0]/count == 0 ?
-            /*13*/ JT, 24,      // jump to return
+            /*13*/ JNZ, 24,      // jump to return
             /*15*/ GLOAD, 0,    // globals[0] = globals[0] - 1
             /*17*/ CONST, 1,    // 1
             /*19*/ SUB,         // subtract (rhs: 1, lhs: globals[0])
@@ -53,6 +53,6 @@ public class JumpTests {
         });
 
         assertEquals(0, vm.getStack().length);
-        assertEquals(0, vm.getGlobals()[10]);
+        assertEquals(10, vm.getGlobals()[0]);
     }
 }
