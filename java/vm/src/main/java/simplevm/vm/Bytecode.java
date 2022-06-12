@@ -10,6 +10,7 @@ public class Bytecode {
     public static final int TRACE = 2;
     public static final int PRINT = 3;
     public static final int HALT = 4;
+    public static final int FATAL = 5;
 
     // Stack manipulation
     public static final int CONST = 10;

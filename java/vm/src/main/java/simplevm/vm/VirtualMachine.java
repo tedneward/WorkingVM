@@ -19,7 +19,7 @@ public class VirtualMachine {
     boolean trace = false;
     private void trace(String message) {
         if (trace) {
-            System.out.println("TRACE: " + message);
+            System.out.println("(IP " + ip + "):" + message);
         }
     }
 
@@ -35,10 +35,12 @@ public class VirtualMachine {
     }
     public void push(int value) {
         stack[++sp] = value;
-        trace("pushed " + value + "; stack: " + Arrays.toString(stack));
+        trace("---> pushed " + value + "; stack: " + Arrays.toString(Arrays.copyOfRange(stack, 0, sp+1)));
     }
     public int pop() {
-        return stack[sp--];
+        int result = stack[sp--];
+        trace("---> popped ; stack: " + Arrays.toString(Arrays.copyOfRange(stack, 0, sp+1)));
+        return result;
     }
 
     public static class StackFrame {
@@ -81,6 +83,9 @@ public class VirtualMachine {
                 trace("PRINT");
                 System.out.println(pop());
                 break;
+            case FATAL:
+                trace("FATAL");
+                throw new Exception("FATAL bytecode executed at " + ip);
             
             case CONST:
                 trace("CONST " + operands[0]);
@@ -148,45 +153,45 @@ public class VirtualMachine {
             // Branching ops
             case JMP:
             {
-                trace("JMP" + operands[0]);
-                ip = operands[0];
+                trace("JMP " + operands[0]);
+                ip = operands[0] - 1; // offset for the ip++ below
                 break;
             }
             case RJMP:
             {
-                trace("RJMP" + operands[0]);
-                ip += operands[0];
+                trace("RJMP " + operands[0]);
+                ip += operands[0] - 1; // offset for the ip++ below
                 break;
             }
             case JMPI:
             {
                 trace("JMPI");
                 int location = pop();
-                ip = location;
+                ip = location - 1; // offset for the ip++ below
                 break;
             }
             case RJMPI:
             {
                 trace("RJMPI");
                 int offset = pop();
-                ip += offset;
+                ip += offset - 1; // offset for the ip++ below
                 break;
             }
             case JF:
             {
-                trace("JF" + operands[0]);
+                trace("JF " + operands[0]);
                 int jump = pop();
                 if (jump == 0) { 
-                    ip = operands[0];
+                    ip = operands[0] - 1; // offset for the ip++ below
                 }
                 break;
             }
             case JT:
             {
-                trace("JT" + operands[0]);
+                trace("JT " + operands[0]);
                 int jump = pop();
                 if (jump != 0) { 
-                    ip = operands[0];
+                    ip = operands[0] - 1; // offset for the ip++ below
                 }
                 break;
             }
@@ -213,9 +218,9 @@ public class VirtualMachine {
                 trace("CALL to " + operands[0]); // go to next instruction
                 StackFrame current = fp();
                 StackFrame next = new StackFrame(current);
-                next.returnAddress = ip;    //
+                next.returnAddress = ip + 2; // take the instruction after this+operand
                 frames.add(next);
-                ip = operands[0] -1; // -1 is to offset the "ip++" below
+                ip = operands[0] - 1; // -1 is to offset the "ip++" below
 
                 break;
             }
@@ -223,7 +228,7 @@ public class VirtualMachine {
             {
                 StackFrame sf = frames.remove(frames.size() - 1);
                 trace("RET (to " + sf.returnAddress + ")");
-                ip = sf.returnAddress;
+                ip = sf.returnAddress - 1; // offset the ip++ below
                 break;
             }
             case LOAD:
@@ -257,11 +262,16 @@ public class VirtualMachine {
         {
             switch (code[ip])
             {
+                case HALT:
+                    trace("HALT at " + ip);
+                    return;
+
                 // 0-operand opcodes
                 case NOP:
                 case TRACE:
                 case DUMP:
                 case PRINT:
+                case FATAL:
                 case POP:
                 case ADD:
                 case SUB:
@@ -278,7 +288,7 @@ public class VirtualMachine {
                 case LTE:
                 case JMPI:
                 case RJMPI:
-                //case RET:
+                case RET:
                     execute(code[ip]);
                     break;
                 
@@ -290,15 +300,15 @@ public class VirtualMachine {
                 case JF:
                 case GLOAD:
                 case GSTORE:
-                //case STORE:
-                //case LOAD:
+                case STORE:
+                case LOAD:
                     execute(code[ip], code[++ip]);
                     break;
 
                 // 2-operand (or more) opcodes
-                //case CALL:
-                //    execute(code[ip], code[++ip], code[++ip]);
-                //    break;
+                case CALL:
+                    execute(code[ip], code[++ip]);
+                    break;
 
                 // Unknown
                 default:
