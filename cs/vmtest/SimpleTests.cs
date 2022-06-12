@@ -49,6 +49,21 @@ public class SimpleTests
     }
 
     [TestMethod]
+    public void TestPRINT()
+    {
+        VirtualMachine vm = new VirtualMachine();
+        
+        vm.Execute(new Bytecode[] {
+            Bytecode.CONST, (Bytecode)12,
+            Bytecode.PRINT
+        });
+        
+        // Check out the output window to see if it printed
+
+        Assert.AreEqual(0, vm.Stack.Length);
+    }
+
+    [TestMethod]
     public void TestDUMP()
     {
         VirtualMachine vm = new VirtualMachine();

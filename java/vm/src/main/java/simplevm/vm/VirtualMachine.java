@@ -43,18 +43,16 @@ public class VirtualMachine {
         return result;
     }
 
-    public static class StackFrame {
+    public static class CallFrame {
         public int[] locals = null;
-        public StackFrame previous = null;
         public int returnAddress = -1;
-        public StackFrame(StackFrame prev) {
+        public CallFrame() {
             // assume a max of 32 locals for now
-            previous = prev;
             locals = new int[32];
         }
     }
-    public List<StackFrame> frames = new LinkedList<>();
-    public StackFrame fp() { return frames.get(frames.size() - 1); }
+    public List<CallFrame> frames = new LinkedList<>();
+    public CallFrame fp() { return frames.get(frames.size() - 1); }
 
     // Globals
     //
@@ -216,8 +214,7 @@ public class VirtualMachine {
             case CALL:
             {
                 trace("CALL to " + operands[0]); // go to next instruction
-                StackFrame current = fp();
-                StackFrame next = new StackFrame(current);
+                CallFrame next = new CallFrame();
                 next.returnAddress = ip + 2; // take the instruction after this+operand
                 frames.add(next);
                 ip = operands[0] - 1; // -1 is to offset the "ip++" below
@@ -226,7 +223,7 @@ public class VirtualMachine {
             }
             case RET:
             {
-                StackFrame sf = frames.remove(frames.size() - 1);
+                CallFrame sf = frames.remove(frames.size() - 1);
                 trace("RET (to " + sf.returnAddress + ")");
                 ip = sf.returnAddress - 1; // offset the ip++ below
                 break;
@@ -249,15 +246,9 @@ public class VirtualMachine {
         }
     }
     public void execute(int[] code) {
-        // We are executing a collection of code, so assume a new StackFrame
-        if (frames.isEmpty()) {
-            StackFrame main = new StackFrame(null);
-            frames.add(main);
-        }
-        else {
-            StackFrame current = fp();
-            frames.add(new StackFrame(current));
-        }
+        // We are executing a collection of code, so assume a new CallFrame
+        frames.add(new CallFrame());
+
         for (ip = 0; ip < code.length; )
         {
             switch (code[ip])

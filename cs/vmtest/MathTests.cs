@@ -10,12 +10,11 @@ public class MathTests
     {
         VirtualMachine vm = new VirtualMachine();
 
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)5,
             Bytecode.CONST, (Bytecode)5,
             Bytecode.ADD,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
@@ -24,13 +23,11 @@ public class MathTests
     public void TestSUB()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)15,
             Bytecode.CONST, (Bytecode)5,
             Bytecode.SUB,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
@@ -39,13 +36,11 @@ public class MathTests
     public void TestMUL()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)5,
             Bytecode.CONST, (Bytecode)2,
             Bytecode.MUL,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
@@ -54,13 +49,11 @@ public class MathTests
     public void TestDIV()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)20,
             Bytecode.CONST, (Bytecode)2,
             Bytecode.DIV,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
@@ -69,13 +62,11 @@ public class MathTests
     public void TestMOD()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)30,
             Bytecode.CONST, (Bytecode)20,
             Bytecode.MOD,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
@@ -84,12 +75,10 @@ public class MathTests
     public void TestABS()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)30,
             Bytecode.ABS,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(30, vm.Stack[0]);
@@ -98,12 +87,10 @@ public class MathTests
     public void TestNEG()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)(-10),
             Bytecode.NEG,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
@@ -112,15 +99,25 @@ public class MathTests
     public void TestNEGNEG()
     {
         VirtualMachine vm = new VirtualMachine();
-
-        Bytecode[] code = {
+        vm.Execute(new Bytecode[] {
             Bytecode.CONST, (Bytecode)(10),
             Bytecode.NEG,
             Bytecode.NEG,
-        };
-        vm.Execute(code);
+        });
 
         Assert.AreEqual(1, vm.Stack.Length);
         Assert.AreEqual(10, vm.Stack[0]);
+    }
+    [TestMethod]
+    public void TestHALT()
+    {
+        VirtualMachine vm = new VirtualMachine();
+        vm.Execute(new Bytecode[] {
+            Bytecode.TRACE,
+            Bytecode.HALT,
+            Bytecode.CONST, (Bytecode)12
+        });
+
+        Assert.AreEqual(0, vm.Stack.Length);
     }
 }
