@@ -62,6 +62,24 @@ public class VirtualMachine
             Console.WriteLine("TRACE: {0}", message);
     }
 
+    // Diagnostics
+    //
+    private void Dump()
+    {
+        Console.WriteLine("SimpleVM - DUMP");
+        Console.WriteLine("===============");
+        Console.WriteLine("IP: {0} / Trace: {1}", IP, trace);
+        Console.WriteLine("Globals: {0}", Globals);
+        Console.WriteLine("Working stack (SP {0}): {1}", SP, String.Join(", ", Stack));
+        Console.WriteLine("Call stack: ");
+        for (int f = Frames.Count - 1; f > -1; f--) {
+            CallFrame cf = Frames[f];
+            Console.WriteLine("  Call Frame {0}:", f);
+            Console.WriteLine("  +- ReturnAddr: {0}", cf.ReturnAddress);
+            Console.WriteLine("  +- Locals: {0}", cf.Locals);
+        }
+    }
+
     // Stack management
     //
     int SP = -1; // points to the current top of stack
@@ -83,7 +101,7 @@ public class VirtualMachine
 
     // Globals
     //
-    public int[] globals = new int[256];
+    public int[] globals = new int[32];
     public int[] Globals { get { return globals; } }
 
     // Locals and CallFrames
@@ -116,8 +134,7 @@ public class VirtualMachine
                     break;
                 case Bytecode.DUMP:
                     Trace("DUMP");
-                    Console.WriteLine("VirtualMachine DUMP:");
-                    Console.WriteLine("  SP: {0}, stack: [{1}]", SP, String.Join(",", stack));
+                    Dump();
                     break;
                 case Bytecode.TRACE:
                     trace = !trace;
@@ -248,7 +265,8 @@ public class VirtualMachine
                     break;
                 }
 
-                // Branching ops
+                // Branching
+                //
                 case Bytecode.JMP:
                 {
                     Trace("JMP " + operands[0]);
@@ -293,6 +311,7 @@ public class VirtualMachine
                 }
 
                 // Globals
+                //
                 case Bytecode.GSTORE:
                 {
                     int index = operands[0];
@@ -306,7 +325,8 @@ public class VirtualMachine
                     break;
                 }
 
-                // Functions
+                // Functions and locals
+                //
                 case Bytecode.CALL:
                 {
                     Trace("CALL to " + operands[0]); // go to next instruction

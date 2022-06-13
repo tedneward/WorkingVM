@@ -23,6 +23,23 @@ public class VirtualMachine {
         }
     }
 
+    // Dump
+    //
+    private void dump() {
+        System.out.println("SimpleVM DUMP");
+        System.out.println("=============");
+        System.out.println("IP: " + ip);
+        System.out.println("Globals: " + Arrays.toString(globals));
+        System.out.println("Working stack (SP " + sp + "): " + Arrays.toString(Arrays.copyOfRange(stack, 0, sp+1)));
+        System.out.println("Call stack: ");
+        for (int f = frames.size(); f != 0; f--) {
+            CallFrame cf = frames.get(f - 1);
+            System.out.println("  Call Frame " + (f - 1) + ":");
+            System.out.println("  +-- Return Address: " + cf.returnAddress);
+            System.out.println("  +-- Locals: " + Arrays.toString(cf.locals));
+        }
+    }
+
     // Stack management
     //
     int sp = -1;
@@ -56,7 +73,7 @@ public class VirtualMachine {
 
     // Globals
     //
-    int[] globals = new int[256];
+    int[] globals = new int[32];
     int[] getGlobals() {
         return globals;
     }
@@ -72,6 +89,7 @@ public class VirtualMachine {
                 break;
             case DUMP:
                 trace("DUMP");
+                dump();
                 break;
             case TRACE:
                 trace = !trace;
@@ -225,7 +243,14 @@ public class VirtualMachine {
             {
                 CallFrame sf = frames.remove(frames.size() - 1);
                 trace("RET (to " + sf.returnAddress + ")");
-                ip = sf.returnAddress - 1; // offset the ip++ below
+                if (sf.returnAddress == -1) {
+                    // We are returning from the topmost level,
+                    // which means our CALL/RETs are imbalanced
+                    throw new Exception("Cannot RET from topmost level");
+                }
+                else {
+                    ip = sf.returnAddress - 1; // offset the ip++ below
+                }
                 break;
             }
             case LOAD:
@@ -246,7 +271,7 @@ public class VirtualMachine {
         }
     }
     public void execute(int[] code) {
-        // We are executing a collection of code, so assume a new CallFrame
+        // We always have at least one CallFrame
         frames.add(new CallFrame());
 
         for (ip = 0; ip < code.length; )
@@ -291,15 +316,13 @@ public class VirtualMachine {
                 case JNZ:
                 case GLOAD:
                 case GSTORE:
+                case CALL:
                 case STORE:
                 case LOAD:
                     execute(code[ip], code[++ip]);
                     break;
 
                 // 2-operand (or more) opcodes
-                case CALL:
-                    execute(code[ip], code[++ip]);
-                    break;
 
                 // Unknown
                 default:
