@@ -2,14 +2,25 @@ import XCTest
 @testable import simplevm
 
 final class stackTests: XCTestCase {
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(simplevm().text, "Hello, World!")
+    func testEmptyStack() {
+        let vm = VirtualMachine()
+
+        XCTAssertEqual(0, vm.Stack.count)
+    }
+
+    func testPushPop() {
+        let vm = VirtualMachine()
+
+        vm.push(27)
+        XCTAssertEqual(1, vm.Stack.count)
+        XCTAssertEqual(27, vm.Stack[0])
+
+        let result = vm.pop()
+        XCTAssertEqual(27, result)
+        XCTAssertEqual(0, vm.Stack.count)
     }
 
     static var allTests = [
-        ("testExample", testExample),
+        ("testEmptyStack", testEmptyStack),
     ]
 }
