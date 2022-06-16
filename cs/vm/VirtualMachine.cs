@@ -5,9 +5,12 @@ public enum Bytecode
     NOP,
     DUMP,
     TRACE,
+    PRINT,
+    HALT,
+    FATAL,
 
     // Stack opcodes
-    CONST, // 1 operand
+    CONST,
     POP,
 
     // Math opcodes (binary)
@@ -35,13 +38,23 @@ public enum Bytecode
     RJMP,
     RJMPI,
     JZ,
-    JNZ
+    JNZ,
+
+    // Globals
+    GSTORE,
+    GLOAD,
+
+    // Procedures/locals
+    CALL,
+    RET,
+    LOAD,
+    STORE
 }
 
 public class VirtualMachine
 {
-    int IP = -1;
-
+    // Tracing
+    //
     bool trace = false;
     private void Trace(string message)
     {
@@ -49,6 +62,26 @@ public class VirtualMachine
             Console.WriteLine("TRACE: {0}", message);
     }
 
+    // Diagnostics
+    //
+    private void Dump()
+    {
+        Console.WriteLine("SimpleVM - DUMP");
+        Console.WriteLine("===============");
+        Console.WriteLine("IP: {0} / Trace: {1}", IP, trace);
+        Console.WriteLine("Globals: {0}", Globals);
+        Console.WriteLine("Working stack (SP {0}): {1}", SP, String.Join(", ", Stack));
+        Console.WriteLine("Call stack: ");
+        for (int f = Frames.Count - 1; f > -1; f--) {
+            CallFrame cf = Frames[f];
+            Console.WriteLine("  Call Frame {0}:", f);
+            Console.WriteLine("  +- ReturnAddr: {0}", cf.ReturnAddress);
+            Console.WriteLine("  +- Locals: {0}", cf.Locals);
+        }
+    }
+
+    // Stack management
+    //
     int SP = -1; // points to the current top of stack
     int[] stack = new int[100];
     public int[] Stack { get { return stack.Take(SP+1).ToArray(); } }
@@ -66,7 +99,31 @@ public class VirtualMachine
         return result;
     }
 
+    // Globals
+    //
+    public int[] globals = new int[32];
+    public int[] Globals { get { return globals; } }
 
+    // Locals and CallFrames
+    //
+    public class CallFrame
+    {
+        public int[] Locals { get; private set; }
+        public int ReturnAddress { get; set; }
+        public CallFrame() {
+            // assume a max of 32 locals for now
+            Locals = new int[32];
+        }
+    }
+    List<CallFrame> Frames = new List<CallFrame>();
+    CallFrame FP()
+    {
+        return Frames[Frames.Count - 1];
+    }
+
+    // Execution
+    //
+    int IP = -1;
     public void Execute(Bytecode opcode, params int[] operands)
     {
         switch (opcode)
@@ -77,13 +134,22 @@ public class VirtualMachine
                     break;
                 case Bytecode.DUMP:
                     Trace("DUMP");
-                    Console.WriteLine("VirtualMachine DUMP:");
-                    Console.WriteLine("  SP: {0}, stack: [{1}]", SP, String.Join(",", stack));
+                    Dump();
                     break;
                 case Bytecode.TRACE:
                     trace = !trace;
                     Trace("TRACE " + trace);
                     break;
+                case Bytecode.PRINT:
+                    Trace("PRINT");
+                    Console.WriteLine(Pop());
+                    break;
+                case Bytecode.HALT:
+                    Trace("HALT");
+                    return;
+                case Bytecode.FATAL:
+                    Trace("FATAL");
+                    throw new Exception(String.Format("FATAL exception thrown; IP {0}",IP));
                 case Bytecode.CONST:
                     int operand = operands[0];
                     Trace("CONST " + operand);
@@ -91,8 +157,8 @@ public class VirtualMachine
                     break;
                 case Bytecode.POP:
                     Trace("POP");
-                    Pop();
                     // throw away returned value
+                    Pop();
                     break;
                 case Bytecode.ADD:
                 {
@@ -199,38 +265,39 @@ public class VirtualMachine
                     break;
                 }
 
-                // Branching ops
+                // Branching
+                //
                 case Bytecode.JMP:
                 {
                     Trace("JMP " + operands[0]);
-                    IP = operands[0];
+                    IP = operands[0] - 1; // offset for IP++ below
                     break;
                 }
                 case Bytecode.RJMP:
                 {
                     Trace("RJMP " + operands[0]);
-                    IP += operands[0];
+                    IP += operands[0] - 1; // offset for IP++ below
                     break;
                 }
                 case Bytecode.JMPI:
                 {
                     int location = Pop();
                     Trace("JMPI " + location);
-                    IP = location;
+                    IP = location - 1; // offset for IP++ below
                     break;
                 }
                 case Bytecode.RJMPI:
                 {
                     int offset = Pop();
                     Trace("RJMPI " + offset);
-                    IP += offset;
+                    IP += offset - 1; // offset for IP++ below
                     break;
                 }
                 case Bytecode.JZ:
                 {
                     Trace("JZ " + operands[0]);
                     if (Pop() == 0) {
-                        IP = operands[0];
+                        IP = operands[0] - 1; // offset for IP++ below
                     }
                     break;
                 }
@@ -238,8 +305,56 @@ public class VirtualMachine
                 {
                     Trace("JNZ " + operands[0]);
                     if (Pop() != 0) {
-                        IP = operands[0];
+                        IP = operands[0] - 1; // offset for IP++ below
                     }
+                    break;
+                }
+
+                // Globals
+                //
+                case Bytecode.GSTORE:
+                {
+                    int index = operands[0];
+                    globals[index] = Pop();
+                    break;
+                }
+                case Bytecode.GLOAD:
+                {
+                    int index = operands[0];
+                    Push(globals[index]);
+                    break;
+                }
+
+                // Functions and locals
+                //
+                case Bytecode.CALL:
+                {
+                    Trace("CALL to " + operands[0]); // go to next instruction
+                    CallFrame next = new CallFrame();
+                    next.ReturnAddress = IP + 2; // take the instruction after this+operand
+                    Frames.Add(next);
+                    IP = operands[0] - 1; // -1 is to offset the "ip++" below
+
+                    break;
+                }
+                case Bytecode.RET:
+                {
+                    CallFrame sf = Frames[Frames.Count - 1];
+                    Frames.RemoveAt(Frames.Count - 1);
+                    Trace("RET (to " + sf.ReturnAddress + ")");
+                    IP = sf.ReturnAddress - 1; // offset the ip++ below
+                    break;
+                }
+                case Bytecode.LOAD:
+                {
+                    Trace("LOAD " + operands[0]);
+                    Push(FP().Locals[operands[0]]);
+                    break;
+                }
+                case Bytecode.STORE:
+                {
+                    Trace("STORE " + operands[0]);
+                    FP().Locals[operands[0]] = Pop();
                     break;
                 }
 
@@ -249,6 +364,9 @@ public class VirtualMachine
     }
     public void Execute(Bytecode[] code)
     {
+        // We always have at least one call frame
+        Frames.Add(new CallFrame());
+
         for (IP = 0; IP < code.Length; )
         {
             Bytecode opcode = code[IP];
@@ -258,6 +376,8 @@ public class VirtualMachine
                 case Bytecode.NOP:
                 case Bytecode.DUMP:
                 case Bytecode.TRACE:
+                case Bytecode.PRINT:
+                case Bytecode.FATAL:
                 case Bytecode.POP:
                 case Bytecode.ADD:
                 case Bytecode.SUB:
@@ -274,6 +394,7 @@ public class VirtualMachine
                 case Bytecode.LTE:
                 case Bytecode.JMPI:
                 case Bytecode.RJMPI:
+                case Bytecode.RET:
                     Execute(opcode);
                     break;
 
@@ -281,11 +402,22 @@ public class VirtualMachine
                 case Bytecode.CONST:
                 case Bytecode.JMP:
                 case Bytecode.RJMP:
+                case Bytecode.JZ:
+                case Bytecode.JNZ:
+                case Bytecode.GSTORE:
+                case Bytecode.GLOAD:
+                case Bytecode.CALL:
+                case Bytecode.STORE:
+                case Bytecode.LOAD:
                     int operand = (int)code[++IP];
                     Execute(opcode, operand);
                     break;
 
                 // 2-operand opcodes
+
+                // Special handling to bail out early
+                case Bytecode.HALT:
+                    return;
 
                 // Unrecognized opcode
                 default:

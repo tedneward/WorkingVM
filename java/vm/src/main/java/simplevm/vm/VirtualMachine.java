@@ -19,7 +19,24 @@ public class VirtualMachine {
     boolean trace = false;
     private void trace(String message) {
         if (trace) {
-            System.out.println("TRACE: " + message);
+            System.out.println("(IP " + ip + "):" + message);
+        }
+    }
+
+    // Dump
+    //
+    private void dump() {
+        System.out.println("SimpleVM DUMP");
+        System.out.println("=============");
+        System.out.println("IP: " + ip);
+        System.out.println("Globals: " + Arrays.toString(globals));
+        System.out.println("Working stack (SP " + sp + "): " + Arrays.toString(Arrays.copyOfRange(stack, 0, sp+1)));
+        System.out.println("Call stack: ");
+        for (int f = frames.size(); f != 0; f--) {
+            CallFrame cf = frames.get(f - 1);
+            System.out.println("  Call Frame " + (f - 1) + ":");
+            System.out.println("  +-- Return Address: " + cf.returnAddress);
+            System.out.println("  +-- Locals: " + Arrays.toString(cf.locals));
         }
     }
 
@@ -35,28 +52,28 @@ public class VirtualMachine {
     }
     public void push(int value) {
         stack[++sp] = value;
-        trace("pushed " + value + "; stack: " + Arrays.toString(stack));
+        trace("---> pushed " + value + "; stack: " + Arrays.toString(Arrays.copyOfRange(stack, 0, sp+1)));
     }
     public int pop() {
-        return stack[sp--];
+        int result = stack[sp--];
+        trace("---> popped ; stack: " + Arrays.toString(Arrays.copyOfRange(stack, 0, sp+1)));
+        return result;
     }
 
-    public static class StackFrame {
+    public static class CallFrame {
         public int[] locals = null;
-        public StackFrame previous = null;
         public int returnAddress = -1;
-        public StackFrame(StackFrame prev) {
+        public CallFrame() {
             // assume a max of 32 locals for now
-            previous = prev;
             locals = new int[32];
         }
     }
-    public List<StackFrame> frames = new LinkedList<>();
-    public StackFrame fp() { return frames.get(frames.size() - 1); }
+    public List<CallFrame> frames = new LinkedList<>();
+    public CallFrame fp() { return frames.get(frames.size() - 1); }
 
     // Globals
     //
-    int[] globals = new int[256];
+    int[] globals = new int[32];
     int[] getGlobals() {
         return globals;
     }
@@ -72,6 +89,7 @@ public class VirtualMachine {
                 break;
             case DUMP:
                 trace("DUMP");
+                dump();
                 break;
             case TRACE:
                 trace = !trace;
@@ -81,6 +99,9 @@ public class VirtualMachine {
                 trace("PRINT");
                 System.out.println(pop());
                 break;
+            case FATAL:
+                trace("FATAL");
+                throw new Exception("FATAL bytecode executed at " + ip);
             
             case CONST:
                 trace("CONST " + operands[0]);
@@ -148,45 +169,45 @@ public class VirtualMachine {
             // Branching ops
             case JMP:
             {
-                trace("JMP" + operands[0]);
-                ip = operands[0];
+                trace("JMP " + operands[0]);
+                ip = operands[0] - 1; // offset for the ip++ below
                 break;
             }
             case RJMP:
             {
-                trace("RJMP" + operands[0]);
-                ip += operands[0];
+                trace("RJMP " + operands[0]);
+                ip += operands[0] - 1; // offset for the ip++ below
                 break;
             }
             case JMPI:
             {
                 trace("JMPI");
                 int location = pop();
-                ip = location;
+                ip = location - 1; // offset for the ip++ below
                 break;
             }
             case RJMPI:
             {
                 trace("RJMPI");
                 int offset = pop();
-                ip += offset;
+                ip += offset - 1; // offset for the ip++ below
                 break;
             }
-            case JF:
+            case JZ:
             {
-                trace("JF" + operands[0]);
+                trace("JZ " + operands[0]);
                 int jump = pop();
                 if (jump == 0) { 
-                    ip = operands[0];
+                    ip = operands[0] - 1; // offset for the ip++ below
                 }
                 break;
             }
-            case JT:
+            case JNZ:
             {
-                trace("JT" + operands[0]);
+                trace("JNZ " + operands[0]);
                 int jump = pop();
                 if (jump != 0) { 
-                    ip = operands[0];
+                    ip = operands[0] - 1; // offset for the ip++ below
                 }
                 break;
             }
@@ -211,19 +232,25 @@ public class VirtualMachine {
             case CALL:
             {
                 trace("CALL to " + operands[0]); // go to next instruction
-                StackFrame current = fp();
-                StackFrame next = new StackFrame(current);
-                next.returnAddress = ip;    //
+                CallFrame next = new CallFrame();
+                next.returnAddress = ip + 2; // take the instruction after this+operand
                 frames.add(next);
-                ip = operands[0] -1; // -1 is to offset the "ip++" below
+                ip = operands[0] - 1; // -1 is to offset the "ip++" below
 
                 break;
             }
             case RET:
             {
-                StackFrame sf = frames.remove(frames.size() - 1);
+                CallFrame sf = frames.remove(frames.size() - 1);
                 trace("RET (to " + sf.returnAddress + ")");
-                ip = sf.returnAddress;
+                if (sf.returnAddress == -1) {
+                    // We are returning from the topmost level,
+                    // which means our CALL/RETs are imbalanced
+                    throw new Exception("Cannot RET from topmost level");
+                }
+                else {
+                    ip = sf.returnAddress - 1; // offset the ip++ below
+                }
                 break;
             }
             case LOAD:
@@ -244,24 +271,23 @@ public class VirtualMachine {
         }
     }
     public void execute(int[] code) {
-        // We are executing a collection of code, so assume a new StackFrame
-        if (frames.isEmpty()) {
-            StackFrame main = new StackFrame(null);
-            frames.add(main);
-        }
-        else {
-            StackFrame current = fp();
-            frames.add(new StackFrame(current));
-        }
+        // We always have at least one CallFrame
+        frames.add(new CallFrame());
+
         for (ip = 0; ip < code.length; )
         {
             switch (code[ip])
             {
+                case HALT:
+                    trace("HALT at " + ip);
+                    return;
+
                 // 0-operand opcodes
                 case NOP:
                 case TRACE:
                 case DUMP:
                 case PRINT:
+                case FATAL:
                 case POP:
                 case ADD:
                 case SUB:
@@ -278,7 +304,7 @@ public class VirtualMachine {
                 case LTE:
                 case JMPI:
                 case RJMPI:
-                //case RET:
+                case RET:
                     execute(code[ip]);
                     break;
                 
@@ -286,19 +312,17 @@ public class VirtualMachine {
                 case CONST:
                 case JMP:
                 case RJMP:
-                case JT:
-                case JF:
+                case JZ:
+                case JNZ:
                 case GLOAD:
                 case GSTORE:
-                //case STORE:
-                //case LOAD:
+                case CALL:
+                case STORE:
+                case LOAD:
                     execute(code[ip], code[++ip]);
                     break;
 
                 // 2-operand (or more) opcodes
-                //case CALL:
-                //    execute(code[ip], code[++ip], code[++ip]);
-                //    break;
 
                 // Unknown
                 default:
