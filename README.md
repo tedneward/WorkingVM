@@ -145,3 +145,7 @@ Take a moment and write some bytecode patterns for common high-level language co
 ## Step 4: Add procedures and locals
 
 
+## Step 5: Constant pools?
+
+
+## Step 6: Add floats? strings?
