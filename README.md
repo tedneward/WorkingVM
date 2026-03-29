@@ -9,7 +9,9 @@ Managed:
 * Java
 * Kotlin? Kotlin Native?
 * F#?
-* JavaScript? (not thrilled at the idea, but....)
+* JavaScript?
+* Python?
+* Ruby?
 
 Unmanaged:
 
@@ -23,28 +25,24 @@ The steps to the workshop are as follows:
 ## Step 0: Infrastructure
 `git checkout step-0`
 
-Our VirtualMachine needs some basic infrastructure to get started. Our VM will be an extremely simple stack-based machine, so as to keep the infrastructure needs lightweight and straightforward. We will work solely wth integers (no floats, no strings, no booleans, etc) to keep things simple, and we will work to start by handling the simplest opcodes, which either do nothing (NOP), or give us some diagnostic insight and/or control.
+Our `VirtualMachine` needs some basic infrastructure to get started. Our VM will be an extremely simple stack-based machine, so as to keep the infrastructure needs lightweight and straightforward. We will work solely wth integers (no floats, no strings, no booleans, etc) to keep things simple, and we will work to start by handling the simplest opcodes, which either do nothing (NOP), or give us some diagnostic insight and/or control.
 
-There are some tests already defined in the respective test projects; if you use different names than the ones described here, refactor the tests accordingly, and by all means, feel free to add a few more tests if you feel the need.
+There are some tests already defined in the respective test projects; if you use different names than the ones described here, refactor the tests accordingly, and by all means, feel free to add a few more tests if you see opportunities to do so.
 
-* We want to begin by implementing the world's simplest opcode: `NOP`, which literally does nothing. Create a type that will contain a number of integer constant values called `Bytecode`.
+* We want to begin by implementing the world's simplest opcode: `NOP`, which literally does nothing. Examine the type `Bytecode`, wherein we've defined our bytecode set.
 
     > **C#, C++**: This is most easily done with an `enum`, since enumerations in both languages are backed by an integer type.
 
     > **Java**: This is most easily done with a series of `public static final int` values, since Java enumerations are object instances, not integer-backed values.
 
-    Within that enumeration, define `NOP` and set its value to 0. (Most bytecode and CPU instructions set `NOP` to 0 for a variety of reasons both historical and practical.)
+    Within that enumeration, `NOP` is defined to be a value of 0. (Most bytecode and CPU instructions set `NOP` to 0 for a variety of reasons both historical and practical.) Note, however, that for most of this lab, the actual integer value of each opcode is irrelelvant--this is why we use the `Bytecode` symbolic-constants/enumerations, to hide the actual value of each. (During early stages of development, the values/encodings will often change.)
 
 * The processor cycle (fetch-decode-execute) is easier to understand if we break it apart. We'll worry about fetch and decode later; create a method, `execute`/`Execute` (depending on your language's naming conventions) that takes a single `Bytecode`/`int` parameter (the `opcode`) and a variable-length array of integers for `operands`. Within this method, you will examine the opcode and (at some point) any operands that are required to execute it. Put some error-handling in here to throw an exception if the opcode is not recognized. Make this method publicly accessible so we can call it from tests.
     * For a `NOP` value, do nothing.
-    * Implement a `DUMP` opcode (add it to `Bytecode` and to our `execute`/`Execute` method) that dumps the current state of the VM to console (or logfile, if you want to build one out).
-    * Implement a `TRACE` opcode that flips the status of a private `trace` boolean field (from true to false or false to true). Build a private method that takes a message and prints it to console or log file if `trace` is set to true. Use this method to help trace execution within the VM while writing/testing new opcodes through this workshop.
-
-    > **NOTE**: Some other interesting opcodes that you could potentially implement include:
-    > * `PRINT`: Print the top stack value, consuming it. (Pop it off, then print it.)
-    > * `HALT`: Immediately terminate execution of the virtual machine.
-    > * `FATAL`: Throw a FatalException from the virtual machine; generally this would be used to signal code that should never be executed, or as a placeholder for an opcode that's supposed to be replaced at runtime somehow.
-    > * `BREAK`: Puase the execution of the virtual machine, a la a breakpoint.
+    * Implement the `DUMP` opcode (add it to `Bytecode` and to our `execute`/`Execute` method) that dumps the current state of the VM to console (or logfile, if you want to build one out). (This method is already written for you in the `VirtualMachine` class.)
+    * Implement the `TRACE` opcode that flips the status of a private `trace` boolean field (from true to false or false to true). (The "trace" method, a private method that takes a message and prints it to console or log file if `trace` is set to true, is already written for you. Use this method to help trace execution within the VM while writing/testing new opcodes through this workshop.)
+    * Implement the `HALT` opcode, which terminates the fetch-decode-execute loop.
+    * Implement the `FATAL` opcode, which throws an exception immediately. (This opcode would be used in places where we want to have an opcode that "should never be executed" as part of testing.)
 
 * Given that this is a stack machine, we need an execution stack on which to push and pop values that will be the input and output for our various opcodes. We will use a fixed-size stack of integers, and we will "push" elements ("grow the stack") towards 100; the first element will be pushed at array index 0, the second at array index 1, and so on. For simplicity's sake, we will not worry about growing the stack or shrinking it. We'll want a reference to the "top" of the stack, and for testing purposes we'll want to be able to see the stack from the outside of the VM.
 
@@ -60,6 +58,8 @@ There are some tests already defined in the respective test projects; if you use
     > **NOTE**: This means that any given collection of code will actually contain values that aren't entirely code, and this is true of all assembly languages. In many more optimized bytecode or CPU sets, these values can be "packed" together with the opcode value to allow for more efficient storage, and thus "unpacking" these values becomes a core part of the "decode" step. To keep things simple, we will not be exploring this packing/unpacking behavior.
 
     Make sure to write tests that ensure the stack works correctly. You shouldn't need to be too exhaustive--once you've verified that pushes advance the SP and pops reduce it, and that values appear on the stack and then are gone again, we can move on. (In a production implementation, )
+
+* Implement the `PRINT` opcode that takes the top element off the operand stack, and prints it.
 
 * Create a method that will take an array of `Bytecode` and execute them in sequence, until we run out of them. Call this method `execute`/`Execute` as well, and loop through the array of bytecode, extracting additional operands as necessary (only `CONST` will need to do this so far) and passing them to the single-opcode version of `execute`/`Execute` you wrote earlier.
 
@@ -111,35 +111,36 @@ Once that's done...
 * Implement `JZ`, a jump-if-zero bytecode, which combines a `EQ 0` with a `JMP`. It should take one operand (the index to jump to if the top value on the stack is zero).
 * Implement `JNZ`, a jump-if-not-zero bytecode, which jumps if the top-of-the-stack is NOT zero.
 
+
+## Step 3: Add globals
+
+
 ## Interlude: Write some bytecode
-Take a moment and write some bytecode patterns for common high-level language constructs. (Comments are C++-style `//` comments.)
+Take a moment and write some bytecode patterns for common high-level language constructs. (Comments are C++-style `//` and `/*`/`*/`-style comments.) Put them into some tests and give it a whirl. Revel is how much work it takes to do even the simplest thing at all. And then remember people built operating systems out of constructs like this.
 
 * Even or odd (if/then/else)
 
     ```
-    0: CONST 5  // Define the value to be tested
-    2: CONST 2  // Push 2 
-    4: MOD      // Mod
-    5: DUMP     // Let's see what's on the stack
-    6: JZ 9     // If it's 0, it divided evenly
-    8: DUMP     // Let's see what's on the stack
-    9: NOP
-    10: NOP
+    /* 0:*/ CONST 5  // Define the value to be tested
+    /* 2:*/ CONST 2  // Push 2 
+    /* 4:*/ MOD      // Mod
+    /* 5:*/ DUMP     // Let's see what's on the stack
+    /* 6:*/ JZ 9     // If it's 0, it divided evenly (which it shouldn't have)
+    /* 8:*/ JMP 10   
+    /* 9:*/ FATAL
+    /*10:*/ DUMP     // Let's see what's on the stack
     ```
 
 * 3... 2... 1... blastoff (while): count down from 5 to 0
 
     ```
-    0: CONST 10 // Start with 5
-    2: CONST 1  // Push 1
-    4: SUB 1    // Subtract
-    6: JZ 10    // If the result is 0, go to 10
-    8: JMP 2    // Jump to 2 and keep going
-    10: NOP
+    /* 0:*/ CONST 10 // Start with 5
+    /* 2:*/ CONST 1  // Push 1
+    /* 4:*/ SUB 1    // Subtract
+    /* 6:*/ JZ 10    // If the result is 0, go to 10
+    /* 8:*/ JMP 2    // Jump to 2 and keep going
+    /*10:*/ DUMP
     ```
-
-## Step 3: Add globals
-
 
 
 ## Step 4: Add procedures and locals
