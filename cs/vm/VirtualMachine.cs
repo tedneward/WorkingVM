@@ -270,34 +270,37 @@ public class VirtualMachine
                 case Bytecode.JMP:
                 {
                     Trace("JMP " + operands[0]);
-                    IP = operands[0] - 1; // offset for IP++ below
+                    IP = operands[0];
                     break;
                 }
                 case Bytecode.RJMP:
                 {
                     Trace("RJMP " + operands[0]);
-                    IP += operands[0] - 1; // offset for IP++ below
+                    IP += operands[0];
                     break;
                 }
                 case Bytecode.JMPI:
                 {
                     int location = Pop();
                     Trace("JMPI " + location);
-                    IP = location - 1; // offset for IP++ below
+                    IP = location;
                     break;
                 }
                 case Bytecode.RJMPI:
                 {
                     int offset = Pop();
                     Trace("RJMPI " + offset);
-                    IP += offset - 1; // offset for IP++ below
+                    IP += offset;
                     break;
                 }
                 case Bytecode.JZ:
                 {
                     Trace("JZ " + operands[0]);
                     if (Pop() == 0) {
-                        IP = operands[0] - 1; // offset for IP++ below
+                        IP = operands[0];
+                    }
+                    else {
+                        IP += 2;
                     }
                     break;
                 }
@@ -305,7 +308,10 @@ public class VirtualMachine
                 {
                     Trace("JNZ " + operands[0]);
                     if (Pop() != 0) {
-                        IP = operands[0] - 1; // offset for IP++ below
+                        IP = operands[0];
+                    }
+                    else {
+                        IP += 2;
                     }
                     break;
                 }
@@ -333,7 +339,7 @@ public class VirtualMachine
                     CallFrame next = new CallFrame();
                     next.ReturnAddress = IP + 2; // take the instruction after this+operand
                     Frames.Add(next);
-                    IP = operands[0] - 1; // -1 is to offset the "ip++" below
+                    IP = operands[0];
 
                     break;
                 }
@@ -342,7 +348,7 @@ public class VirtualMachine
                     CallFrame sf = Frames[Frames.Count - 1];
                     Frames.RemoveAt(Frames.Count - 1);
                     Trace("RET (to " + sf.ReturnAddress + ")");
-                    IP = sf.ReturnAddress - 1; // offset the ip++ below
+                    IP = sf.ReturnAddress; // offset the ip++ below
                     break;
                 }
                 case Bytecode.LOAD:
@@ -392,6 +398,10 @@ public class VirtualMachine
                 case Bytecode.LT:
                 case Bytecode.GTE:
                 case Bytecode.LTE:
+                    Execute(opcode);
+                    IP += 1;
+                    break;
+
                 case Bytecode.JMPI:
                 case Bytecode.RJMPI:
                 case Bytecode.RET:
@@ -400,17 +410,20 @@ public class VirtualMachine
 
                 // 1-operand opcodes
                 case Bytecode.CONST:
-                case Bytecode.JMP:
-                case Bytecode.RJMP:
-                case Bytecode.JZ:
-                case Bytecode.JNZ:
                 case Bytecode.GSTORE:
                 case Bytecode.GLOAD:
                 case Bytecode.CALL:
                 case Bytecode.STORE:
                 case Bytecode.LOAD:
-                    int operand = (int)code[++IP];
-                    Execute(opcode, operand);
+                    Execute(opcode, (int)code[IP + 1]);
+                    IP += 2;
+                    break;
+
+                case Bytecode.JMP:
+                case Bytecode.RJMP:
+                case Bytecode.JZ:
+                case Bytecode.JNZ:
+                    Execute(opcode, (int)code[IP + 1]);
                     break;
 
                 // 2-operand opcodes
@@ -423,7 +436,6 @@ public class VirtualMachine
                 default:
                     throw new Exception("Unrecognized opcode: " + code[IP]);
             }
-            IP++;
         }
     }
 }

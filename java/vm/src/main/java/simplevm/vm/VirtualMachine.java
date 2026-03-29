@@ -170,27 +170,27 @@ public class VirtualMachine {
             case JMP:
             {
                 trace("JMP " + operands[0]);
-                ip = operands[0] - 1; // offset for the ip++ below
+                ip = operands[0];
                 break;
             }
             case RJMP:
             {
                 trace("RJMP " + operands[0]);
-                ip += operands[0] - 1; // offset for the ip++ below
+                ip += operands[0];
                 break;
             }
             case JMPI:
             {
                 trace("JMPI");
                 int location = pop();
-                ip = location - 1; // offset for the ip++ below
+                ip = location;
                 break;
             }
             case RJMPI:
             {
                 trace("RJMPI");
                 int offset = pop();
-                ip += offset - 1; // offset for the ip++ below
+                ip += offset;
                 break;
             }
             case JZ:
@@ -198,7 +198,10 @@ public class VirtualMachine {
                 trace("JZ " + operands[0]);
                 int jump = pop();
                 if (jump == 0) { 
-                    ip = operands[0] - 1; // offset for the ip++ below
+                    ip = operands[0];
+                }
+                else {
+                    ip += 2;
                 }
                 break;
             }
@@ -207,7 +210,10 @@ public class VirtualMachine {
                 trace("JNZ " + operands[0]);
                 int jump = pop();
                 if (jump != 0) { 
-                    ip = operands[0] - 1; // offset for the ip++ below
+                    ip = operands[0];
+                }
+                else {
+                    ip += 2;
                 }
                 break;
             }
@@ -235,7 +241,7 @@ public class VirtualMachine {
                 CallFrame next = new CallFrame();
                 next.returnAddress = ip + 2; // take the instruction after this+operand
                 frames.add(next);
-                ip = operands[0] - 1; // -1 is to offset the "ip++" below
+                ip = operands[0];
 
                 break;
             }
@@ -249,7 +255,7 @@ public class VirtualMachine {
                     throw new Exception("Cannot RET from topmost level");
                 }
                 else {
-                    ip = sf.returnAddress - 1; // offset the ip++ below
+                    ip = sf.returnAddress;
                 }
                 break;
             }
@@ -302,24 +308,34 @@ public class VirtualMachine {
                 case LT:
                 case GTE:
                 case LTE:
+                    execute(code[ip]);
+                    ip += 1;
+                    break;
+
                 case JMPI:
                 case RJMPI:
                 case RET:
                     execute(code[ip]);
+                    // Don't modify IP
                     break;
                 
                 // 1-operand opcodes
                 case CONST:
+                case GLOAD:
+                case GSTORE:
+                case STORE:
+                case LOAD:
+                    execute(code[ip], code[ip + 1]);
+                    ip += 2;
+                    break;
+
+                case CALL:
                 case JMP:
                 case RJMP:
                 case JZ:
                 case JNZ:
-                case GLOAD:
-                case GSTORE:
-                case CALL:
-                case STORE:
-                case LOAD:
-                    execute(code[ip], code[++ip]);
+                    execute(code[ip], code[ip + 1]);
+                    // Don't modify IP
                     break;
 
                 // 2-operand (or more) opcodes
@@ -328,7 +344,6 @@ public class VirtualMachine {
                 default:
                     throw new Exception("Unrecognized opcode: " + code[ip]);
             }
-            ip++;
         }
     }
 }
